@@ -1,18 +1,16 @@
-const { body, param, query, validationResult } = require('express-validator');
-const { Post, User, Comment, Like, Friend, sequelize } = require('../models');
-const { Op, fn, col, literal } = require('sequelize');
+const { body, param, query, validationResult } = require("express-validator");
+const { Post, User, Comment, Like, Friend, sequelize } = require("../models");
+const { Op, fn, col, literal } = require("sequelize");
 
 const validateCreatePost = [
-  body('content')
+  body("content")
     .trim()
     .isLength({ min: 1, max: 1000 })
-    .withMessage('Post content must be between 1 and 1000 characters')
+    .withMessage("Post content must be between 1 and 1000 characters"),
 ];
 
 const validatePostId = [
-  param('id')
-    .isInt({ min: 1 })
-    .withMessage('Invalid post ID')
+  param("id").isInt({ min: 1 }).withMessage("Invalid post ID"),
 ];
 
 const createPost = async (req, res) => {
@@ -21,8 +19,8 @@ const createPost = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        error: 'Validation failed',
-        details: errors.array()
+        error: "Validation failed",
+        details: errors.array(),
       });
     }
 
@@ -30,26 +28,28 @@ const createPost = async (req, res) => {
 
     const post = await Post.create({
       content,
-      userId: req.user.id
+      userId: req.user.id,
     });
 
     const postWithUser = await Post.findByPk(post.id, {
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['id', 'firstName', 'lastName']
-      }]
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "firstName", "lastName"],
+        },
+      ],
     });
 
     res.status(201).json({
       success: true,
-      data: postWithUser
+      data: postWithUser,
     });
   } catch (error) {
-    console.error('Create post error:', error);
+    console.error("Create post error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to create post'
+      error: "Failed to create post",
     });
   }
 };
@@ -60,19 +60,21 @@ const getPostById = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        error: 'Validation failed',
-        details: errors.array()
+        error: "Validation failed",
+        details: errors.array(),
       });
     }
 
     const { id } = req.params;
 
     const post = await Post.findByPk(id, {
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['id', 'firstName', 'lastName']
-      }],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "firstName", "lastName"],
+        },
+      ],
       attributes: {
         include: [
           [
@@ -81,24 +83,24 @@ const getPostById = async (req, res) => {
               FROM Comments
               WHERE Comments.postId = Post.id
             )`),
-            'commentCount'
-          ]
-        ]
-      }
+            "commentCount",
+          ],
+        ],
+      },
     });
 
     if (!post) {
       return res.status(404).json({
         success: false,
-        error: 'Post not found'
+        error: "Post not found",
       });
     }
 
     const userLike = await Like.findOne({
       where: {
         userId: req.user.id,
-        postId: id
-      }
+        postId: id,
+      },
     });
 
     const postResponse = post.toJSON();
@@ -106,113 +108,108 @@ const getPostById = async (req, res) => {
 
     res.json({
       success: true,
-      data: postResponse
+      data: postResponse,
     });
   } catch (error) {
-    console.error('Get post by ID error:', error);
+    console.error("Get post by ID error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve post'
+      error: "Failed to retrieve post",
     });
   }
 };
 
 const getTimeline = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const offset = (page - 1) * limit;
 
-    const friends = await Friend.findAll({
+    // 1️⃣ Lấy danh sách friendIds
+    const friendIds = await Friend.findAll({
       where: { userId: req.user.id },
-      attributes: ['friendId']
-    });
-
-    const friendIds = friends.map(f => f.friendId);
+      attributes: ["friendId"],
+      raw: true,
+    }).then((rows) => rows.map((r) => r.friendId));
 
     if (friendIds.length === 0) {
       return res.json({
         success: true,
         data: {
           posts: [],
-          pagination: {
-            page,
-            limit,
-            total: 0,
-            pages: 0
-          }
-        }
+          pagination: { page, limit, total: 0, pages: 0 },
+        },
       });
     }
 
-    const posts = await Post.findAndCountAll({
+    // 2️⃣ Query timeline (1 query duy nhất)
+    const { rows, count } = await Post.findAndCountAll({
       where: {
-        userId: {
-          [Op.in]: friendIds
-        }
+        userId: { [Op.in]: friendIds },
       },
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['id', 'firstName', 'lastName']
-      }],
       attributes: {
+        exclude: ["userId"], // 👈 bỏ FK
         include: [
+          // commentCount
           [
             sequelize.literal(`(
-              SELECT COUNT(*)
-              FROM Comments
-              WHERE Comments.postId = Post.id
+              SELECT COUNT(*) 
+              FROM Comments c 
+              WHERE c.postId = Post.id
             )`),
-            'commentCount'
+            "commentCount",
           ],
+          // likeCount
           [
             sequelize.literal(`(
-              SELECT COUNT(*)
-              FROM Likes
-              WHERE Likes.postId = Post.id
+              SELECT COUNT(*) 
+              FROM Likes l 
+              WHERE l.postId = Post.id
             )`),
-            'likeCount'
-          ]
-        ]
+            "likeCount",
+          ],
+          // userHasLiked (EXISTS)
+          [
+            sequelize.literal(`EXISTS (
+              SELECT 1 
+              FROM Likes l2 
+              WHERE l2.postId = Post.id
+              AND l2.userId = ${req.user.id}
+            )`),
+            "userHasLiked",
+          ],
+        ],
       },
-      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "firstName", "lastName"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
       limit,
-      offset
+      offset,
+      distinct: true,
     });
-
-    const postsWithUserLikes = await Promise.all(
-      posts.rows.map(async (post) => {
-        const userLike = await Like.findOne({
-          where: {
-            userId: req.user.id,
-            postId: post.id
-          }
-        });
-
-        const postResponse = post.toJSON();
-        postResponse.userHasLiked = !!userLike;
-        return postResponse;
-      })
-    );
 
     res.json({
       success: true,
       data: {
-        posts: postsWithUserLikes,
+        posts: rows,
         pagination: {
           page,
           limit,
-          total: posts.count,
-          pages: Math.ceil(posts.count / limit)
-        }
-      }
+          total: count,
+          pages: Math.ceil(count / limit),
+        },
+      },
     });
   } catch (error) {
-    console.error('Get timeline error:', error);
+    console.error("Get timeline error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve timeline'
+      error: "Failed to retrieve timeline",
     });
   }
 };
@@ -222,5 +219,5 @@ module.exports = {
   getPostById,
   getTimeline,
   validateCreatePost,
-  validatePostId
+  validatePostId,
 };
