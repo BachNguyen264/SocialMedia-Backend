@@ -1,24 +1,27 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
+const authMiddleware = require("../middleware/auth");
+const validateRequest = require("../middleware/validateRequest");
 const {
   getAllUsers,
   getUserById,
-  updateUser,
-  getUserPosts,
+  getMyPosts,
   getUserComments,
   getUserLikes,
   validateUpdateUser,
-  validateUserId
-} = require('../controllers/userController');
+  validateUserId,
+  getMe,
+  updateMe,
+} = require("../controllers/userController");
 
 router.use(authMiddleware);
 
-router.get('/', getAllUsers);
-router.get('/:id', validateUserId, getUserById);
-router.put('/:id', validateUserId, validateUpdateUser, updateUser);
-router.get('/:id/posts', validateUserId, getUserPosts);
-router.get('/:id/comments', validateUserId, getUserComments);
-router.get('/:id/likes', validateUserId, getUserLikes);
+router.get("/", getAllUsers);
+router.get("/me", getMe);
+router.patch("/me", validateUpdateUser, validateRequest, updateMe);
+router.get("/me/posts", getMyPosts);
+router.get("/:id", validateUserId, validateRequest, getUserById);
+router.get("/:id/comments", validateUserId, validateRequest, getUserComments);
+router.get("/:id/likes", validateUserId, validateRequest, getUserLikes);
 
 module.exports = router;

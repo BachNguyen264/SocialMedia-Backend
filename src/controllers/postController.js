@@ -15,15 +15,6 @@ const validatePostId = [
 
 const createPost = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: "Validation failed",
-        details: errors.array(),
-      });
-    }
-
     const { content } = req.body;
 
     const post = await Post.create({
@@ -56,15 +47,6 @@ const createPost = async (req, res) => {
 
 const getPostById = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: "Validation failed",
-        details: errors.array(),
-      });
-    }
-
     const { id } = req.params;
 
     const post = await Post.findByPk(id, {
@@ -76,6 +58,7 @@ const getPostById = async (req, res) => {
         },
       ],
       attributes: {
+        exclude: ["userId"],
         include: [
           [
             sequelize.literal(`(
@@ -84,6 +67,14 @@ const getPostById = async (req, res) => {
               WHERE Comments.postId = Post.id
             )`),
             "commentCount",
+          ],
+          [
+            sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM Likes
+              WHERE Likes.postId = Post.id
+            )`),
+            "likeCount",
           ],
         ],
       },

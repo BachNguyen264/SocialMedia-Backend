@@ -5,6 +5,7 @@ This guide shows how to use the backend API endpoints that replace the Android c
 ## Authentication
 
 ### Register New User
+
 **Replaces**: `CreateUser.java`
 
 ```http
@@ -20,6 +21,7 @@ Content-Type: application/json
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -36,6 +38,7 @@ Content-Type: application/json
 ```
 
 ### User Login
+
 **Replaces**: `ReadUser.java`
 
 ```http
@@ -53,6 +56,7 @@ Content-Type: application/json
 ## User Management
 
 ### Get All Users (for discovery)
+
 **Replaces**: `ReadAllUsers.java`
 
 ```http
@@ -63,6 +67,7 @@ Authorization: Bearer <token>
 **Optional search**: `GET /api/users?search=john`
 
 ### Get User Profile
+
 **Replaces**: `ReadUserByID.java`
 
 ```http
@@ -71,6 +76,7 @@ Authorization: Bearer <token>
 ```
 
 ### Update User Profile
+
 **Replaces**: `UpdateUser.java`
 
 ```http
@@ -87,6 +93,7 @@ Content-Type: application/json
 ## Posts
 
 ### Create Post
+
 **Replaces**: `CreatePost.java`
 
 ```http
@@ -100,6 +107,7 @@ Content-Type: application/json
 ```
 
 ### Get Timeline (from friends)
+
 **Replaces**: `GenerateTimeline.java`
 
 ```http
@@ -112,6 +120,7 @@ Authorization: Bearer <token>
 ## Comments
 
 ### Create Comment
+
 **Replaces**: `CreateComment.java`
 
 ```http
@@ -125,6 +134,7 @@ Content-Type: application/json
 ```
 
 ### Get Post Comments
+
 **Replaces**: `ReadPostComments.java`
 
 ```http
@@ -135,6 +145,7 @@ Authorization: Bearer <token>
 ## Likes
 
 ### Like Post
+
 **Replaces**: `LikePost.java`
 
 ```http
@@ -143,6 +154,7 @@ Authorization: Bearer <token>
 ```
 
 ### Unlike Post
+
 **Replaces**: `DislikePost.java`
 
 ```http
@@ -151,6 +163,7 @@ Authorization: Bearer <token>
 ```
 
 ### Get Post Likes
+
 **Replaces**: `ReadPostLikes.java`
 
 ```http
@@ -161,6 +174,7 @@ Authorization: Bearer <token>
 ## Friends
 
 ### Add Friend
+
 **Replaces**: `AddFriend.java`
 
 ```http
@@ -169,6 +183,7 @@ Authorization: Bearer <token>
 ```
 
 ### Remove Friend
+
 **Replaces**: `RemoveFriend.java`
 
 ```http
@@ -186,6 +201,7 @@ Authorization: Bearer <token>
 ## User Activity
 
 ### Get User's Posts
+
 **Replaces**: `ReadUserPosts.java`
 
 ```http
@@ -194,6 +210,7 @@ Authorization: Bearer <token>
 ```
 
 ### Get User's Comments
+
 **Replaces**: `ReadUserComments.java`
 
 ```http
@@ -202,6 +219,7 @@ Authorization: Bearer <token>
 ```
 
 ### Get User's Liked Posts
+
 **Replaces**: `ReadUserLikes.java`
 
 ```http
@@ -214,6 +232,7 @@ Authorization: Bearer <token>
 All API endpoints return consistent responses:
 
 **Success Response**:
+
 ```json
 {
   "success": true,
@@ -222,15 +241,16 @@ All API endpoints return consistent responses:
 ```
 
 **Error Response**:
+
 ```json
 {
   "success": false,
-  "error": "Error message",
-  "details": []
+  "error": "Error message"
 }
 ```
 
 **Common HTTP Status Codes**:
+
 - 200: Success
 - 201: Created (POST requests)
 - 400: Bad Request (validation errors)
